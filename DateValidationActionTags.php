@@ -106,7 +106,9 @@ class DateValidationActionTags extends AbstractExternalModule
               default: var min = '', max = '';
             }
             //console.log('min='+min+' max='+max);
-            redcap_validate(ob, min, max, 'soft_typed', format, 1);
+            if (dataEntryFormValuesChanged) {
+                redcap_validate(ob, min, max, 'soft_typed', format, 1);
+            }
         };
         
         var taggedFields = JSON.parse('<?php echo json_encode($taggedFields); ?>');

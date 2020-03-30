@@ -21,6 +21,7 @@ Action tags to validate date and datetime field entries:
 - If more than one of these tags is applied to a field only the first will be used.
 - You may still specify min/max literal values. The action tag check is applied after the range check.
 - The action tag validation check is a soft check similar to existing range checks (i.e. a warning is displayed but the value is permitted).
+- @FUTURE/@NOTPAST: when you enter a future date/time and then after that time return to the form, the validation check will be triggered only after data on the form has changed.
 
 ![Validate](./datevaltags-check.png)
 
