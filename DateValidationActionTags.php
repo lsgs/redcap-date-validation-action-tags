@@ -18,11 +18,11 @@ class DateValidationActionTags extends AbstractExternalModule
         );
         
         public function redcap_data_entry_form_top($project_id, $record=null, $instrument, $event_id, $group_id=null, $repeat_instance=1) {
-                $this->include($instrument);
+                $this->includeTagFunctions($instrument);
         }
 
         public function redcap_survey_page_top($project_id, $record=null, $instrument, $event_id, $group_id=null, $survey_hash=null, $response_id=null, $repeat_instance=1) {
-                $this->include($instrument);
+                $this->includeTagFunctions($instrument);
         }
         
         /**
@@ -46,7 +46,7 @@ class DateValidationActionTags extends AbstractExternalModule
                 }
         }
         
-        protected function include($instrument) {
+        protected function includeTagFunctions($instrument) {
                 $taggedFields = array();
                 $tags = static::$Tags;
                 $instrumentFields = \REDCap::getDataDictionary('array', false, true, $instrument);
