@@ -7,10 +7,10 @@ Luke Stevens, Murdoch Children's Research Institute https://www.mcri.edu.au
 ## Summary
 
 Action tags to validate date and datetime field entries:
-- @FUTURE     Entered value must be in the future, i.e. > now
-- @NOTPAST    Entered value must NOT be in the past, i.e. >= now
-- @PAST       Entered value must be in the past, i.e. < now
-- @NOTFUTURE  Entered value must NOT be in the PAST, i.e. <= now
+- @FUTURE     Entered value must be in the future, i.e. is later than today/now (today/now is out of range)
+- @NOTPAST    Entered value must NOT be in the past, i.e. is today/now or later (today/now is in range)
+- @PAST       Entered value must be in the past, i.e. is earlier than today/now (today/now is out of range)
+- @NOTFUTURE  Entered value must NOT be in the future, i.e. is today/now or earlier (today/now is in range)
 
 ![Designer](./datevaltags-setup.png)
 
