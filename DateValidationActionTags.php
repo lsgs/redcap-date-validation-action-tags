@@ -10,6 +10,8 @@ use ExternalModules\AbstractExternalModule;
 
 class DateValidationActionTags extends AbstractExternalModule
 {
+        protected $is_survey = 0;
+
         protected static $Tags = array(
             '@FUTURE' => array('comparison'=>'gt', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>after today (or now)</u>.<br>Current date (time) is NOT within the allowed range.'),
             '@NOTPAST' => array('comparison'=>'gte', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>today (or now) or after</u>.<br>Current date (time) IS within the allowed range.'),
@@ -22,6 +24,7 @@ class DateValidationActionTags extends AbstractExternalModule
         }
 
         public function redcap_survey_page_top($project_id, $record=null, $instrument, $event_id, $group_id=null, $survey_hash=null, $response_id=null, $repeat_instance=1) {
+                $this->is_survey = 1;
                 $this->includeTagFunctions($instrument);
         }
         
@@ -71,6 +74,7 @@ class DateValidationActionTags extends AbstractExternalModule
     $(document).ready(function(){
 
         var em_blur = function (ob, comparison, format) {
+            const is_survey = <?=$this->is_survey?>;
             const now = new Date();
             const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
             if (format.includes("seconds")) {
@@ -106,7 +110,7 @@ class DateValidationActionTags extends AbstractExternalModule
               default: var min = '', max = '';
             }
             //console.log('min='+min+' max='+max);
-            if (dataEntryFormValuesChanged) {
+            if (dataEntryFormValuesChanged || is_survey) {
                 redcap_validate(ob, min, max, 'soft_typed', format, 1);
             }
         };
@@ -117,7 +121,7 @@ class DateValidationActionTags extends AbstractExternalModule
             var input = $('input[name='+fld+']');
             if (input.length) { // instrument field may not be on current page of survey
                 //console.log(fld+': '+taggedFields[fld]);
-                $(input).on('blur', function() {
+                $(input).on('blur change', function() {
                     em_blur(this,taggedFields[fld],input.attr('fv'));
                 });
             }
