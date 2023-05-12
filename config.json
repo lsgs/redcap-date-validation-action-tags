@@ -1,10 +1,7 @@
 {
     "name": "Date Validation Action Tags",
-
     "description": "Action tags to validate date and date time entries as @FUTURE, @NOTPAST, @PAST, @NOTFUTURE.",
-
     "namespace": "MCRI\\DateValidationActionTags",
-
     "authors": [
         {
             "name": "Luke Stevens",
@@ -12,14 +9,6 @@
             "institution": "Murdoch Children's Research Institute"
         }
     ],
-
-    "framework-version": 3,
-
-    "permissions": [
-        "redcap_every_page_before_render",
-        "redcap_data_entry_form_top",
-        "redcap_survey_page_top"
-    ],
-    
+    "framework-version": 12,
     "enable-every-page-hooks-on-system-pages": false
 }
