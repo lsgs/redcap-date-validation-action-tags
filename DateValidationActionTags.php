@@ -13,28 +13,74 @@ class DateValidationActionTags extends AbstractExternalModule
     protected $is_survey = 0;
 
     protected static $Tags = array(
-        '@FUTURE' => array('comparison'=>'gt', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>after today (or now)</u>.<br>Current date (time) is NOT within the allowed range.'),
-        '@NOTPAST' => array('comparison'=>'gte', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>today (or now) or after</u>.<br>Current date (time) IS within the allowed range.'),
-        '@PAST' => array('comparison'=>'lt', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>before today (or now)</u>.<br>Current date (time) is NOT within the allowed range.'),
-        '@NOTFUTURE' => array('comparison'=>'lte', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, validate that the value entered is <u>today (or now) or before</u>.<br>Current date (time) IS within the allowed range.'),
+        '@FUTURE' => array('comparison'=>'gt', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, uses <em>today + 1</em> (or <em>now</em>) as range minimum.<br>Current date (time) is NOT within the allowed range.'),
+        '@NOTPAST' => array('comparison'=>'gte', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, equivalent to using <em>today</em> (or <em>now</em>) as range minimum.'),
+        '@PAST' => array('comparison'=>'lt', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, uses <em>today - 1</em> (or <em>now</em>) as range maximum.<br>Current date (time) is NOT within the allowed range.'),
+        '@NOTFUTURE' => array('comparison'=>'lte', 'description'=>'Date Validation Action Tags<br>For a date (or datetime) field, equivalent to using <em>today</em> (or <em>now</em>) as range maximum.')
     );
-    
-    public function redcap_data_entry_form_top($project_id, $record, $instrument, $event_id, $group_id, $repeat_instance) {
-        $this->includeTagFunctions($instrument);
-    }
 
-    public function redcap_survey_page_top($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance) {
-        $this->is_survey = 1;
-        $this->includeTagFunctions($instrument);
-    }
-        
-    /**
-     * Augment the action_tag_explain content on project Design pages by 
-     * adding some additional tr following the last built-in action tag.
-     * @param type $project_id
-     */
     public function redcap_every_page_before_render($project_id) {
-        if (PAGE==='Design/action_tag_explain.php') {
+        if (empty($project_id)) return;
+        
+        if (PAGE=='DataEntry/index.php' || PAGE=='surveys/index') {
+            global $Proj;
+
+            // $pattern /(@FUTURE|@NOTPAST|@PAST|@NOTFUTURE)\s/
+            $pattern = '/('.implode('|', array_keys(static::$Tags)).')/';
+            
+            foreach ($Proj->metadata as $field => $attrs) {
+                if (strpos($attrs['element_validation_type'], 'date')!==0) continue; // skip if not a date or datetime field
+                $min = $attrs['element_validation_min'];
+                $max = $attrs['element_validation_max'];
+                $isDtTm = (strpos($attrs['element_validation_type'], 'time')) ? true : false;
+                
+                $matches = array();
+                if (preg_match($pattern, $attrs['misc'], $matches)) {
+
+                    switch ($matches[0]) {
+                        case '@NOTPAST': // min today/now
+                            if (empty($min)) {
+                                $Proj->metadata[$field]['element_validation_min'] = ($isDtTm) ? 'now' : 'today';
+                            }
+                            break;
+                        
+                        case '@NOTFUTURE': // max is today/now
+                            if (empty($max)) {
+                                $Proj->metadata[$field]['element_validation_max'] = ($isDtTm) ? 'now' : 'today';
+                            }
+                            break;
+
+                        case '@FUTURE': // min is tomorrow, use now if datetime
+                            if (empty($min)) {
+                                if ($isDtTm) {
+                                    $Proj->metadata[$field]['element_validation_min'] = 'now';
+                                } else {
+                                    $tomorrow = new \DateTime();
+                                    $tomorrow->add(new \DateInterval('P1D'));
+                                    $Proj->metadata[$field]['element_validation_min'] = $tomorrow->format('Y-m-d');
+                                }
+                            }
+                            break;
+                        
+                        case '@PAST': // max is yesterday, use now if datetime
+                            if (empty($max)) {
+                                if ($isDtTm) {
+                                    $Proj->metadata[$field]['element_validation_max'] = 'now';
+                                } else {
+                                    $yesterday = new \DateTime();
+                                    $yesterday->sub(new \DateInterval('P1D'));
+                                    $Proj->metadata[$field]['element_validation_max'] = $yesterday->format('Y-m-d');
+                                }
+                            }
+                        break;
+                        
+                        default:
+                            break;
+                    }
+                }
+            }
+
+        } else if (PAGE==='Design/action_tag_explain.php') {
             global $lang;
             $lastActionTagDesc = end(\Form::getActionTags());
 
@@ -49,88 +95,6 @@ class DateValidationActionTags extends AbstractExternalModule
         }
     }
     
-    protected function includeTagFunctions($instrument) {
-        $taggedFields = array();
-        $tags = static::$Tags;
-        $instrumentFields = \REDCap::getDataDictionary('array', false, true, $instrument);
-        
-        // $pattern /(@FUTURE|@NOTPAST|@PAST|@NOTFUTURE)\s/
-        $pattern = '/('.implode('|', array_keys($tags)).')/';
-        foreach ($instrumentFields as $fieldName => $fieldDetails) {
-            $matches = array();
-            if (preg_match($pattern, $fieldDetails['field_annotation'], $matches)) {
-                $comparison = $tags[$matches[0]]['comparison'];
-                $taggedFields[$fieldName] = $comparison;
-            }
-        }
-        if (count($taggedFields)>0) {
-            $this->includeJS($taggedFields);
-        }
-    }
-    
-    protected function includeJS($taggedFields) {
-        ?>
-<script type="text/javascript">
-    $(document).ready(function(){
-
-        var em_blur = function (ob, comparison, format) {
-            const is_survey = <?=$this->is_survey?>;
-            const now = new Date();
-            const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
-            if (format.includes("seconds")) {
-                var dtstrLen = 19;
-                switch(comparison) {
-                  case 'gt' : var tagOffsetMs = 1*1000; break;
-                  case 'lt' : var tagOffsetMs = -1*1000; break;
-                  default: var tagOffsetMs = 0;
-                }
-            } else if (format.includes("time")) {
-                var dtstrLen = 16;
-                switch(comparison) {
-                  case 'gt' : var tagOffsetMs = 60*1000; break;
-                  case 'lt' : var tagOffsetMs = -60*1000; break;
-                  default: var tagOffsetMs = 0;
-                }
-            } else {
-                var dtstrLen = 10;
-                switch(comparison) {
-                  case 'gt' : var tagOffsetMs = 24*60*60*1000; break;
-                  case 'lt' : var tagOffsetMs = -24*60*60*1000; break;
-                  default: var tagOffsetMs = 0;
-                }
-            }
-            const dateLocal = new Date(now.getTime() - tzOffsetMs + tagOffsetMs);
-            const dtstr = dateLocal.toISOString().slice(0, dtstrLen).replace("T", " ");
-            
-            switch(comparison) {
-              case 'gt' : var min = dtstr, max = ''; break;
-              case 'gte': var min = dtstr, max = ''; break;
-              case 'lt' : var min = '', max = dtstr; break;
-              case 'lte': var min = '', max = dtstr; break;
-              default: var min = '', max = '';
-            }
-            //console.log('min='+min+' max='+max);
-            if (dataEntryFormValuesChanged || is_survey) {
-                redcap_validate(ob, min, max, 'soft_typed', format, 1);
-            }
-        };
-        
-        var taggedFields = JSON.parse('<?php echo json_encode($taggedFields); ?>');
-        //console.log(taggedFields);
-        Object.keys(taggedFields).forEach(function(fld) {
-            var input = $('input[name='+fld+']');
-            if (input.length) { // instrument field may not be on current page of survey
-                //console.log(fld+': '+taggedFields[fld]);
-                $(input).on('blur change', function() {
-                    em_blur(this,taggedFields[fld],input.attr('fv'));
-                });
-            }
-        });
-    });
-</script>
-            <?php
-    }
-    
     /**
      * Make a table row for an action tag copied from 
      * v8.5.0/Design/action_tag_explain.php
@@ -142,15 +106,15 @@ class DateValidationActionTags extends AbstractExternalModule
     protected function makeTagTR($tag, $description) {
         global $isAjax, $lang;
         return \RCView::tr(array(),
-            \RCView::td(array('class'=>'nowrap', 'style'=>'text-align:center;background-color:#f5f5f5;color:#912B2B;padding:7px 15px 7px 12px;font-weight:bold;border:1px solid #ccc;border-bottom:0;border-right:0;'),
+            \RCView::td(array('class'=>'nowrap', 'data-cell'=>'button', 'style'=>'text-align:center;background-color:#f5f5f5;color:#912B2B;padding:7px 15px 7px 12px;font-weight:bold;border:1px solid #ccc;border-bottom:0;border-right:0;'),
                 ((!$isAjax || (isset($_POST['hideBtns']) && $_POST['hideBtns'] == '1')) ? '' :
                     \RCView::button(array('class'=>'btn btn-xs btn-rcred', 'style'=>'', 'onclick'=>"$('#field_annotation').val(trim('".js_escape($tag)." '+$('#field_annotation').val())); highlightTableRowOb($(this).parentsUntil('tr').parent(),2500);"), $lang['design_171'])
                 )
             ) .
-            \RCView::td(array('class'=>'nowrap', 'style'=>'background-color:#f5f5f5;color:#912B2B;padding:7px;font-weight:bold;border:1px solid #ccc;border-bottom:0;border-left:0;border-right:0;'),
+            \RCView::td(array('class'=>'nowrap', 'data-cell'=>'name', 'style'=>'background-color:#f5f5f5;color:#912B2B;padding:7px;font-weight:bold;border:1px solid #ccc;border-bottom:0;border-left:0;border-right:0;'),
                 $tag
             ) .
-            \RCView::td(array('style'=>'font-size:12px;background-color:#f5f5f5;padding:7px;border:1px solid #ccc;border-bottom:0;border-left:0;'),
+            \RCView::td(array('data-cell'=>'desc', 'style'=>'font-size:12px;background-color:#f5f5f5;padding:7px;border:1px solid #ccc;border-bottom:0;border-left:0;'),
                 '<i class="fas fa-cube mr-1"></i>'.$description
             )
         );
