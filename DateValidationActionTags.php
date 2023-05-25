@@ -22,7 +22,7 @@ class DateValidationActionTags extends AbstractExternalModule
     public function redcap_every_page_before_render($project_id) {
         if (empty($project_id)) return;
         
-        if (PAGE=='DataEntry/index.php' || PAGE=='surveys/index') {
+        if (PAGE=='DataEntry/index.php' || PAGE=='surveys/index.php') {
             global $Proj;
 
             // $pattern /(@FUTURE|@NOTPAST|@PAST|@NOTFUTURE)\s/
