@@ -9,6 +9,24 @@
             "institution": "Murdoch Children's Research Institute"
         }
     ],
-    "framework-version": 12,
+    "framework-version": 14,
+    "action-tags": [
+        {
+            "tag": "@FUTURE",
+            "description": "Entered value must be in the future, i.e. is later than today/now (today/now is out of range)."
+        },
+        {
+            "tag": "@NOTPAST",
+            "description": "Entered value must NOT be in the past, i.e. is today/now or later (today/now is in range)."
+        },
+        {
+            "tag": "@PAST",
+            "description": " Entered value must be in the past, i.e. is earlier than today/now (today/now is out of range)."
+        },
+        {
+            "tag": "@NOTFUTURE",
+            "description": "Entered value must NOT be in the future, i.e. is today/now or earlier (today/now is in range)."
+        }
+    ],
     "enable-every-page-hooks-on-system-pages": false
 }
