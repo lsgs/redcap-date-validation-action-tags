@@ -13,19 +13,19 @@
     "action-tags": [
         {
             "tag": "@FUTURE",
-            "description": "Entered value must be in the future, i.e. is later than today/now (today/now is out of range)."
+            "description": "For a date (or datetime) field, uses <em>today + 1</em> (or <em>now</em>) as range minimum.<br>Current date (time) is NOT within the allowed range."
         },
         {
             "tag": "@NOTPAST",
-            "description": "Entered value must NOT be in the past, i.e. is today/now or later (today/now is in range)."
+            "description": "For a date (or datetime) field, equivalent to using <em>today</em> (or <em>now</em>) as range minimum."
         },
         {
             "tag": "@PAST",
-            "description": " Entered value must be in the past, i.e. is earlier than today/now (today/now is out of range)."
+            "description": "For a date (or datetime) field, uses <em>today - 1</em> (or <em>now</em>) as range maximum.<br>Current date (time) is NOT within the allowed range."
         },
         {
             "tag": "@NOTFUTURE",
-            "description": "Entered value must NOT be in the future, i.e. is today/now or earlier (today/now is in range)."
+            "description": "For a date (or datetime) field, equivalent to using <em>today</em> (or <em>now</em>) as range maximum."
         }
     ],
     "enable-every-page-hooks-on-system-pages": false
